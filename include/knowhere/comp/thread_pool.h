@@ -16,7 +16,7 @@
 
 #ifdef __linux__
 
-#if defined(__PPC64__) || defined(__ppc64__) || defined(__PPC64LE__) || defined(__ppc64le__) || defined(__powerpc64__)
+#if defined(__PPC64__) || defined(__ppc64__) || defined(__PPC64LE__) || defined(__ppc64le__) || defined(__powerpc64__) || defined(__loongarch64)
 #include <openblas/cblas.h>
 #else
 #include <cblas.h>
