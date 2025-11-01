@@ -151,6 +151,14 @@ if(__PPC64)
   target_link_libraries(knowhere_utils PUBLIC xxHash::xxhash)
 endif()
 
+# ToDo: Add distances_lsx.cc for loongarch64 SIMD acceleration
+if(__LOONGARCH64)
+  set(UTILS_SRC src/simd/hook.cc src/simd/distances_ref.cc)
+  add_library(knowhere_utils STATIC ${UTILS_SRC})
+  target_link_libraries(knowhere_utils PUBLIC glog::glog)
+  target_link_libraries(knowhere_utils PUBLIC xxHash::xxhash)
+endif()
+
 
 if(LINUX)
   set(BLA_VENDOR OpenBLAS)
@@ -293,5 +301,32 @@ if(__PPC64)
   add_dependencies(faiss knowhere_utils)
   target_link_libraries(faiss PUBLIC OpenMP::OpenMP_CXX ${BLAS_LIBRARIES} ${LAPACK_LIBRARIES}
                                       knowhere_utils)
+  target_compile_definitions(faiss PRIVATE FINTEGER=int)
+endif()
+
+if(__LOONGARCH64)
+  knowhere_file_glob(GLOB FAISS_AVX_SRCS thirdparty/faiss/faiss/impl/*avx.cpp)
+  list(REMOVE_ITEM FAISS_SRCS ${FAISS_AVX_SRCS})
+
+  knowhere_file_glob(GLOB FAISS_NEON_SRCS thirdparty/faiss/faiss/impl/*neon.cpp)
+  list(REMOVE_ITEM FAISS_SRCS ${FAISS_NEON_SRCS})
+
+  add_library(faiss STATIC ${FAISS_SRCS})
+  target_include_directories(faiss PRIVATE ${Boost_INCLUDE_DIRS})
+
+  target_compile_options(
+    faiss
+    PRIVATE $<$<COMPILE_LANGUAGE:CXX>:
+            -mcpu=native
+            -Wno-sign-compare
+            -Wno-unused-variable
+            -Wno-reorder
+            -Wno-unused-local-typedefs
+            -Wno-unused-function
+            -Wno-strict-aliasing>)
+
+  add_dependencies(faiss knowhere_utils)
+  target_link_libraries(faiss PUBLIC OpenMP::OpenMP_CXX ${BLAS_LIBRARIES}
+                                     ${LAPACK_LIBRARIES} knowhere_utils)
   target_compile_definitions(faiss PRIVATE FINTEGER=int)
 endif()
